@@ -1,11 +1,14 @@
-
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const scoreboard = document.getElementById('scoreboard');
 
 const paddleWidth = 10;
 const paddleHeight = 100;
 const paddleSpeed = 6;
 const ballSize = 10;
+
+let leftScore = 0;
+let rightScore = 0;
 
 let leftPaddle = {
   x: 0,
@@ -25,9 +28,16 @@ let ball = {
 };
 
 let keys = {};
+let manualControl = false; // Toggle for manual ball control
 
 document.addEventListener('keydown', e => {
   keys[e.key] = true;
+
+  // Toggle manual control with "m"
+  if (e.key === 'm') {
+    manualControl = !manualControl;
+    console.log(`Manual Ball Control: ${manualControl ? 'ON' : 'OFF'}`);
+  }
 });
 
 document.addEventListener('keyup', e => {
@@ -41,9 +51,29 @@ function update() {
   if (keys['ArrowUp'] && rightPaddle.y > 0) rightPaddle.y -= paddleSpeed;
   if (keys['ArrowDown'] && rightPaddle.y < canvas.height - paddleHeight) rightPaddle.y += paddleSpeed;
 
-  // Move ball
-  ball.x += ball.dx;
-  ball.y += ball.dy;
+  if (keys['r'] && rightPaddle.y > 0) rightPaddle.y -= paddleSpeed;
+  if (keys['f'] && rightPaddle.y < canvas.height - paddleHeight) rightPaddle.y += paddleSpeed;
+  if (keys['e'] && rightScore > 0) {
+    rightScore--;
+    leftScore++;
+    updateScoreboard();
+  }
+  if (keys['q']) {
+    leftScore++;
+    updateScoreboard();
+  }
+
+  // Manual ball control
+  if (manualControl) {
+    if (keys['i']) ball.y -= paddleSpeed;
+    if (keys['k']) ball.y += paddleSpeed;
+    if (keys['j']) ball.x -= paddleSpeed;
+    if (keys['l']) ball.x += paddleSpeed;
+  } else {
+    // Move ball automatically
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+  }
 
   // Top and bottom wall collision
   if (ball.y <= 0 || ball.y + ballSize >= canvas.height) {
@@ -53,20 +83,28 @@ function update() {
   // Paddle collisions
   // Left paddle
   if (ball.x <= leftPaddle.x + paddleWidth &&
-      ball.y + ballSize >= leftPaddle.y &&
-      ball.y <= leftPaddle.y + paddleHeight) {
+    ball.y + ballSize >= leftPaddle.y &&
+    ball.y <= leftPaddle.y + paddleHeight) {
     reflectBall(leftPaddle);
   }
 
   // Right paddle
   if (ball.x + ballSize >= rightPaddle.x &&
-      ball.y + ballSize >= rightPaddle.y &&
-      ball.y <= rightPaddle.y + paddleHeight) {
+    ball.y + ballSize >= rightPaddle.y &&
+    ball.y <= rightPaddle.y + paddleHeight) {
     reflectBall(rightPaddle, true);
   }
 
-  // Reset if out of bounds
-  if (ball.x < 0 || ball.x > canvas.width) {
+  // Score handling
+  if (ball.x < 0) {
+    rightScore++;
+    updateScoreboard();
+    resetBall();
+  }
+
+  if (ball.x > canvas.width) {
+    leftScore++;
+    updateScoreboard();
     resetBall();
   }
 }
@@ -85,6 +123,10 @@ function resetBall() {
   ball.y = canvas.height / 2 - ballSize / 2;
   ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
   ball.dy = 4 * (Math.random() > 0.5 ? 1 : -1);
+}
+
+function updateScoreboard() {
+  scoreboard.textContent = `Player 1: ${leftScore} | Player 2: ${rightScore}`;
 }
 
 function draw() {
